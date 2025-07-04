@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>【測試版】Echoes of youth 永豐韓流最終大成 - 劃位</title>
+  <style>
+    body { font-family: sans-serif; padding: 10px; }
+    .seat { width: 27px; height: 27px; margin: 2px; text-align: center; line-height: 27px; border: 1px solid #999; border-radius: 5px; cursor: pointer; user-select: none; display: inline-block; font-size: 14px; }
+    .selected { background-color: #4CAF50; color: white; }
+    .unavailable { background-color: #ccc; cursor: not-allowed; }
+    .row { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
+    .group { display: flex; margin: 3px 0; }
+    .row-label { font-weight: bold; margin-bottom: 3px; text-align: center; }
+    .controls { margin-top: 10px; text-align: center; }
+    #result { white-space: pre-wrap; margin-top: 10px; text-align:center; }
+    .stage-label { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+<h3 style="text-align:center;">【測試版】劃位表單</h3>
+<p><strong>名稱:</strong> Echoes of youth 永豐韓流最終大成</p>
+<p><strong>時間:</strong> 2025/08/15 (五) 15:20</p>
+<p><strong>地點:</strong> 桃園市政府文化局演藝廳</p>
+
+<p>
+  <label for="username">姓名：</label>
+  <input type="text" id="username" name="username" required>
+</p>
+
+<div class="stage-label">舞台方向 ↑</div>
+<div id="seat-container"></div>
+
+<div class="controls">
+  <button type="button" onclick="submitSelection()">送出</button>
+</div>
+
+<div id="result"></div>
+
+<script>
+const scriptUrl = 'https://script.google.com/macros/s/AKfycbzyB7ueJFX_5aGlUk7gJcvwdMFDNVhcVXLwWfGJoQfza_UiXPc-pcZkxH3hpKGu-E1PVA/exec';
+const unavailableSeats = new Set();
+const selectedSeats = new Set();
+const seatConfig = {};
+const container = document.getElementById('seat-container');
+
+for (let i = 1; i <= 14; i++) unavailableSeats.add(`1-${i}`);
+for (let row = 2; row <= 3; row++) for (let i = 1; i <= 8; i++) unavailableSeats.add(`${row}-${i}`);
+for (let row = 11; row <= 23; row++) for (let i = 9; i <= 24; i++) unavailableSeats.add(`${row}-${i}`);
+
+for (let row = 1; row <= 23; row++) {
+  seatConfig[row] = [23,21,19,17,15,13,11,9,7,5,3,1,2,4,6,8,10,12,14,16,18,20,22,24];
+}
+
+function renderSeats() {
+  container.innerHTML = '';
+  for (const row in seatConfig) {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'row';
+    const rowLabel = document.createElement('div');
+    rowLabel.className = 'row-label';
+    rowLabel.textContent = `第${row}排`;
+    rowDiv.appendChild(rowLabel);
+
+    const leftGroup = document.createElement('div');
+    leftGroup.className = 'group';
+    seatConfig[row].slice(0,8).forEach(seatNum => leftGroup.appendChild(createSeatElement(row, seatNum)));
+
+    const centerGroup = document.createElement('div');
+    centerGroup.className = 'group';
+    seatConfig[row].slice(8,16).forEach(seatNum => centerGroup.appendChild(createSeatElement(row, seatNum)));
+
+    const rightGroup = document.createElement('div');
+    rightGroup.className = 'group';
+    seatConfig[row].slice(16).forEach(seatNum => rightGroup.appendChild(createSeatElement(row, seatNum)));
+
+    rowDiv.appendChild(leftGroup);
+    rowDiv.appendChild(centerGroup);
+    rowDiv.appendChild(rightGroup);
+
+    container.appendChild(rowDiv);
+  }
+}
+
+function createSeatElement(row, seatNum) {
+  const seatId = `${row}-${seatNum}`;
+  const seat = document.createElement('div');
+  seat.className = 'seat';
+  seat.textContent = seatNum;
+  if (unavailableSeats.has(seatId)) seat.classList.add('unavailable');
+  seat.addEventListener('click', () => {
+    if (seat.classList.contains('unavailable')) return;
+    if (selectedSeats.has(seatId)) {
+      selectedSeats.delete(seatId);
+      seat.classList.remove('selected');
+    } else {
+      selectedSeats.add(seatId);
+      seat.classList.add('selected');
+    }
+  });
+  return seat;
+}
+
+function submitSelection() {
+  const name = document.getElementById('username').value.trim();
+  if (!name) return alert('請輸入姓名！');
+  if (selectedSeats.size === 0) return alert('尚未選擇任何座位！');
+  const seats = Array.from(selectedSeats).join(', ');
+  if (confirm(`請確認：\n姓名: ${name}\n座位: ${seats}`)) {
+    fetch(scriptUrl, {
+      method: 'POST',
+      body: new URLSearchParams({ name, seats })
+    })
+    .then(res => res.text())
+    .then(() => {
+      alert('送出成功！');
+      document.getElementById('result').innerText = `姓名: ${name}\n已送出座位：${seats}`;
+      seats.split(',').map(s => s.trim()).forEach(seatId => {
+        unavailableSeats.add(seatId);
+        selectedSeats.delete(seatId);
+      });
+      renderSeats();
+    })
+    .catch(err => {
+      alert('送出失敗！');
+      console.error(err);
+    });
+  }
+}
+
+fetch(scriptUrl)
+  .then(res => res.json())
+  .then(data => {
+    data.forEach(seatId => unavailableSeats.add(seatId));
+    renderSeats();
+  })
+  .catch(err => {
+    alert('無法載入已選座位資料');
+    console.error(err);
+    renderSeats();
+  });
+</script>
+</body>
+</html>
