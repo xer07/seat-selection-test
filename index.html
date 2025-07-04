@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -38,7 +39,7 @@
 <div id="result"></div>
 
 <script>
-const scriptUrl = 'https://script.google.com/macros/s/AKfycbzyB7ueJFX_5aGlUk7gJcvwdMFDNVhcVXLwWfGJoQfza_UiXPc-pcZkxH3hpKGu-E1PVA/exec';
+const scriptUrl = 'https://script.google.com/macros/s/AKfycbzDuzPCBtDGi4OV96LQE-EYKF9ShvctWpuiqCjvzgBcqD5IA79AVo8Q_mCSd2gBx8oZVw/exec';
 const unavailableSeats = new Set();
 const selectedSeats = new Set();
 const seatConfig = {};
@@ -109,7 +110,7 @@ function submitSelection() {
   if (confirm(`請確認：\n姓名: ${name}\n座位: ${seats}`)) {
     fetch(scriptUrl, {
       method: 'POST',
-      body: new URLSearchParams({ name, seats })
+      body: new URLSearchParams({ name, seats, source: '測試版' })
     })
     .then(res => res.text())
     .then(() => {
@@ -122,7 +123,7 @@ function submitSelection() {
       renderSeats();
     })
     .catch(err => {
-      alert('送出成功！');
+      alert('送出失敗！');
       console.error(err);
     });
   }
